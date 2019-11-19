@@ -82,6 +82,7 @@ public class NewMan extends OpMode {
     private DcMotor frontRight;
     private DcMotor rearRight;
     private DcMotor manArm;
+    private boolean bumperDown = false;
 
     private Servo elbow;
     private Servo hand;
@@ -182,12 +183,34 @@ public class NewMan extends OpMode {
         telemetry.addData("HEADING", angles.firstAngle);
     }
 
+    // It is possible for buttons to be read multiple times through a loop, triggering
+    // actions multiple times unintentionally.  Using a debounce routine fixes this issue
+    // by ignoring further presses of a button until it has been released.
+    //
+    // Pattern:
+    // Use a boolean variable to track whether a button has been released yet.
+    // boolean x_released = true; // Button is not currently pressed
+    // if (gamepad1.x) {  // X Button is pressed
+    //     if (x_released) { if the x button is not currently pressed...
+    //         x_released = false; // mark the button as not having been released yet
+    //         // Do an action here
+    //     }
+    // }
+    // else {
+    //     x_released = true;
+
     private void setManualMode() {
-        telemetry.addData("MANUAL MODE:", manualControl);
-        if(gamepad1.right_bumper){
-          manualControl = !manualControl; // <-- The right bumper acts as a toggle
-                                          // The right bumper will switch manualControl...
-                                          // ...between true and false
+        telemetry.addData("MANUAL MODE:", manualControl); // <-- See above comment block for explanation
+        if(gamepad1.right_bumper) {
+          if(!bumperDown){
+            bumperDown = true;
+            manualControl = !manualControl;
+          }
+
+
+        }
+        else {
+          bumperDown = false;
         }
     }
 
