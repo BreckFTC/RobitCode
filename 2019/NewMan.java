@@ -261,15 +261,15 @@ public class NewMan extends OpMode {
           break;
 
           case "3block":
-          manArm.setTargetPosition(1100);
+          manArm.setTargetPosition(1300);
           break;
         }
 
         if(manArm.getCurrentPosition() > manArm.getTargetPosition()){
-          manArm.setPower(0.35); // <-- If arm is going down, move at 35% power
+          manArm.setPower(1);
         }
         else {
-          manArm.setPower(0.5); // <-- If arm is going up, move at 50% power
+          manArm.setPower(1);
         }
         manArm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
