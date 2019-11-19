@@ -242,8 +242,8 @@ public class NewMan extends OpMode {
         if(manualControl){
           manualMoveArm(); // <-- If manual control mode is active...
                            // ...revert to trigger control.
-                           // RightBumper = up
-                           // LeftBumper = down
+                           // RightTrigger = up
+                           // LeftTrigger = down
           return;          // <-- This will exit the function early so...
                            // ...the state machine doesn't control the arm
         }
