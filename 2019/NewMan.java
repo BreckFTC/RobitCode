@@ -60,20 +60,19 @@ public class NewMan extends OpMode {
 
     // Expansion Hub 1:
     // Motors:
-    // Port 0: frontLeft
-    // Port 1: rearLeft
-    // Port 2: frontRight
-    // Port 3: rearRight
+    // Port 0: manArm
+    // Servos
+    // Port 0: leHand <-- Still needed
     // Sensors:
     // I2C Bus 0: Expansion Hub IMU
     // I2C Bus 1: frontDistance
 
     // Expansion Hub 2:
     // Motors:
-    // Port 0: manArm
-    // Servos
-    // Port 0: leElbo <-- No longer in use
-    // Port 1: leHand <-- Still needed
+    // Port 0: frontLeft
+    // Port 1: rearLeft
+    // Port 2: frontRight
+    // Port 3: rearRight
 
     public DecimalFormat format = new DecimalFormat("##.00");
     private BNO055IMU imu;
@@ -82,15 +81,19 @@ public class NewMan extends OpMode {
     private DcMotor frontRight;
     private DcMotor rearRight;
     private DcMotor manArm;
-    private boolean bumperDown = false;
+    private boolean rightBumperDown = false;
+    private boolean leftBumperDown = false;
+    private boolean rightStickClick = false;
 
     private Servo elbow;
     private Servo hand;
 
-    private DistanceSensor frontDistyboi;
+    private DistanceSensor frontDistance;
 
     private String armState = "0block"; // <-- Using string comparators to better explain...
                                         // ...what is happening with the armState
+
+    private String driveState = "step1";
 
     public double leftStickY;
     public double leftStickX;
@@ -112,6 +115,7 @@ public class NewMan extends OpMode {
         gyroInit();
         gamepadInit();
         sensorInit();
+        hand.setPosition(0.5);
     }
 
     @Override
@@ -128,6 +132,8 @@ public class NewMan extends OpMode {
         setDrivePower();
         selectPosition();
         moveArm();
+        dropBlock();
+        resetArm();
     }
 
     private void gamepadInit() {
@@ -142,8 +148,7 @@ public class NewMan extends OpMode {
 
         manArm = hardwareMap.get(DcMotor.class, "manArm");
 
-        // elbow = hardwareMap.get(Servo.class, "leElbo"); <-- No longer needed
-        // hand = hardwareMap.get(Servo.class, "leHand"); <-- Keeping
+        hand = hardwareMap.get(Servo.class, "leHand");
 
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         rearRight.setDirection(DcMotor.Direction.REVERSE);
@@ -156,6 +161,16 @@ public class NewMan extends OpMode {
         manArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         telemetry.addData("MOTORS", "Initialized");
     }
@@ -173,7 +188,7 @@ public class NewMan extends OpMode {
     }
 
     private void sensorInit() {
-        frontDistyboi = hardwareMap.get(DistanceSensor.class, "frontDistance");
+        frontDistance = hardwareMap.get(DistanceSensor.class, "frontDistance");
     }
 
     private void gyroLoop() {
@@ -200,18 +215,39 @@ public class NewMan extends OpMode {
     //     x_released = true;
 
     private void setManualMode() {
-        telemetry.addData("MANUAL MODE:", manualControl); // <-- See above comment block for explanation
-        if(gamepad1.right_bumper) {
-          if(!bumperDown){
-            bumperDown = true;
-            manualControl = !manualControl;
-          }
-
-
+      telemetry.addData("MANUAL MODE:", manualControl); // <-- See above comment block for explanation
+      if(gamepad1.right_bumper) {
+        if(!rightBumperDown){
+          rightBumperDown = true;
+          manualControl = !manualControl;
         }
-        else {
-          bumperDown = false;
+      }
+      else {
+        rightBumperDown = false;
+      }
+    }
+
+    private void dropBlock() {
+      if(gamepad1.left_bumper) {
+        if(!leftBumperDown){
+          leftBumperDown = true;
+          hand.setPosition(0.5);
         }
+      } else {
+        leftBumperDown = false;
+      }
+    }
+
+    private void resetArm() {
+      if(gamepad1.right_stick_button) {
+        if(!rightStickClick){
+          rightStickClick = true;
+          manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+          manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+      } else {
+        rightStickClick = false;
+      }
     }
 
     private void manualMoveArm() {
@@ -237,6 +273,7 @@ public class NewMan extends OpMode {
         }
     }
 
+
     private void moveArm() {
         telemetry.addData("ManArm", manArm.getCurrentPosition());
         if(manualControl){
@@ -249,32 +286,55 @@ public class NewMan extends OpMode {
         }
         switch(armState){
           case "0block":
-          manArm.setTargetPosition(0);
+          manArm.setTargetPosition(110);
+          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+            hand.setPosition(0);
+            if(hand.getPosition() == 0) {
+              armState = "1block";
+            }
+          }
           break;
 
           case "1block":
           manArm.setTargetPosition(500);
+          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+            hand.setPosition(0);
+          }
+
           break;
 
           case "2block":
           manArm.setTargetPosition(800);
+          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+            hand.setPosition(0);
+          }
+
           break;
 
           case "3block":
-          manArm.setTargetPosition(1300);
+          manArm.setTargetPosition(1100);
+          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+            hand.setPosition(0);
+          }
+
           break;
         }
-
-        if(manArm.getCurrentPosition() > manArm.getTargetPosition()){
-          manArm.setPower(1);
-        }
-        else {
-          manArm.setPower(1);
-        }
+        manArm.setPower(0.5);
         manArm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        // moveClaw();
+    }
+
+    private void moveClaw() {
+      hand.setPosition(0.5);
     }
 
     private void setDrivePower() {
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         final double rotation = -Math.pow(gamepad1.right_stick_x, 3.0) * -1;
         final double y = Math.pow(gamepad1.left_stick_y, 3.0) * -1;
         final double x = -Math.pow(gamepad1.left_stick_x, 3.0) * -1;
@@ -297,7 +357,13 @@ public class NewMan extends OpMode {
     }
 
     private void measureDistance() {
-        telemetry.addData("Frontdistyboi", String.format("%.01f cm", frontDistyboi.getDistance(DistanceUnit.CM)));
+        telemetry.addData("frontDistance", String.format("%.01f cm", frontDistance.getDistance(DistanceUnit.CM)));
+        telemetry.addData("FL", frontLeft.getCurrentPosition());
+        telemetry.addData("BL", rearLeft.getCurrentPosition());
+        telemetry.addData("FR", frontRight.getCurrentPosition());
+        telemetry.addData("BR", rearRight.getCurrentPosition());
+
+        telemetry.addData("driveState:", driveState);
     }
 
 }
