@@ -16,7 +16,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 @Autonomous
 
-public class AutoMan extends OpMode{
+public class AutoManBlue extends OpMode{
 
     // CONFIGURATION
 
@@ -83,8 +83,10 @@ public class AutoMan extends OpMode{
     public void loop(){
         gyroLoop();
         measureDistance();
-        driveLoop();
+       driveLoop();
         moveArm();
+        //setDrivePower();
+
     }
 
     private void motorInit(){
@@ -195,10 +197,10 @@ public class AutoMan extends OpMode{
             break;
 
             case "chargeBackwards":
-                frontLeft.setTargetPosition(-1144);
-                frontRight.setTargetPosition(121);
-                rearLeft.setTargetPosition(1138);
-                rearRight.setTargetPosition(-190);
+                frontLeft.setTargetPosition(115);
+                frontRight.setTargetPosition(-1259);
+                rearLeft.setTargetPosition(-177);
+                rearRight.setTargetPosition(1216);
 
                 frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -210,17 +212,17 @@ public class AutoMan extends OpMode{
                 rearLeft.setPower(0.3);
                 rearRight.setPower(0.3);
 
-                if (frontLeft.getCurrentPosition() <= -1120){
+                if (frontLeft.getCurrentPosition() >= 110 ){
                   driveState = "180oogabooga";
                 }
             break;
 
             case "180oogabooga":
               // setDrivePower();
-              frontLeft.setTargetPosition(1765);
-              frontRight.setTargetPosition(3069);
-              rearLeft.setTargetPosition(-1792);
-              rearRight.setTargetPosition(-3128);
+              frontLeft.setTargetPosition(2974);
+              frontRight.setTargetPosition(1608);
+              rearLeft.setTargetPosition(-3062);
+              rearRight.setTargetPosition(-1609);
 
               frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
               frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -232,16 +234,16 @@ public class AutoMan extends OpMode{
               rearLeft.setPower(0.3);
               rearRight.setPower(0.3);
 
-              if (frontLeft.getCurrentPosition() >= 1760){
+              if (frontLeft.getCurrentPosition() >= 2970){
                 driveState = "turtle";
               }
             break;
 
             case "turtle":
-              frontLeft.setTargetPosition(2454);
-              frontRight.setTargetPosition(-2509);
-              rearLeft.setTargetPosition(-2474);
-              rearRight.setTargetPosition(-2509);
+              frontLeft.setTargetPosition(2255);
+              frontRight.setTargetPosition(2334);
+              rearLeft.setTargetPosition(-2307);
+              rearRight.setTargetPosition(-2326);
 
               frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
               frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -253,16 +255,16 @@ public class AutoMan extends OpMode{
               rearLeft.setPower(0.3);
               rearRight.setPower(0.3);
 
-              if (frontLeft.getCurrentPosition() >= 2450){
+              if (frontLeft.getCurrentPosition() <= 2260){
                 driveState = "attackFoundation";
               }
             break;
 
             case "attackFoundation":
-              frontLeft.setTargetPosition(2064);
-              frontRight.setTargetPosition(1906);
-              rearLeft.setTargetPosition(-2052);
-              rearRight.setTargetPosition(-2086);
+              frontLeft.setTargetPosition(2042);
+              frontRight.setTargetPosition(2120);
+              rearLeft.setTargetPosition(-2081);
+              rearRight.setTargetPosition(-2115);
 
               frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
               frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -274,7 +276,7 @@ public class AutoMan extends OpMode{
               rearLeft.setPower(0.3);
               rearRight.setPower(0.3);
 
-              if (frontLeft.getCurrentPosition() <= 2070){
+              if (frontLeft.getCurrentPosition() <= 2040){
                 driveState = "dropBlock";
               }
 
@@ -292,10 +294,10 @@ public class AutoMan extends OpMode{
 
           case "kachowBackwards":
               hand.setPosition(0.3);
-              frontLeft.setTargetPosition(2755);
-              frontRight.setTargetPosition(2614);
-              rearLeft.setTargetPosition(-2791);
-              rearRight.setTargetPosition(-2837);
+              frontLeft.setTargetPosition(3040);
+              frontRight.setTargetPosition(3097);
+              rearLeft.setTargetPosition(-3106);
+              rearRight.setTargetPosition(-3059);
 
               frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
               frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -306,7 +308,7 @@ public class AutoMan extends OpMode{
               frontRight.setPower(0.3);
               rearLeft.setPower(0.3);
               rearRight.setPower(0.3);
-              if (frontLeft.getCurrentPosition() >= 2750){
+              if (frontLeft.getCurrentPosition() >= 3030){
                 driveState = "spinDoctor";
               }
 
@@ -314,10 +316,10 @@ public class AutoMan extends OpMode{
 
             case "spinDoctor":
               armState = "0block";
-              frontLeft.setTargetPosition(2128);
-              frontRight.setTargetPosition(3290);
-              rearLeft.setTargetPosition(-2224);
-              rearRight.setTargetPosition(-3448);
+              frontLeft.setTargetPosition(3612);
+              frontRight.setTargetPosition(2510);
+              rearLeft.setTargetPosition(-3723);
+              rearRight.setTargetPosition(-2478);
 
               frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
               frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -328,17 +330,17 @@ public class AutoMan extends OpMode{
               frontRight.setPower(0.3);
               rearLeft.setPower(0.3);
               rearRight.setPower(0.3);
-              if (frontLeft.getCurrentPosition() <= 2130){
+              if (frontLeft.getCurrentPosition() >= 3610){
                 driveState = "goUnderBridge";
               }
             break;
 
             case "goUnderBridge":
               // setDrivePower();
-              frontLeft.setTargetPosition(224);
-              frontRight.setTargetPosition(1246);
-              rearLeft.setTargetPosition(-296);
-              rearRight.setTargetPosition(-1496);
+              frontLeft.setTargetPosition(1815);
+              frontRight.setTargetPosition(736);
+              rearLeft.setTargetPosition(-1939);
+              rearRight.setTargetPosition(-738);
 
               frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
               frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -356,7 +358,8 @@ public class AutoMan extends OpMode{
             break;
 
             case "weDoneBoi":
-              setDrivePower();
+              //setDrivePower();
+              moveArm();
             break;
 
 

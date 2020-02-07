@@ -55,7 +55,7 @@ import com.qualcomm.robotcore.hardware.DistanceSensor;
  */
 @TeleOp
 
-public class NewMan extends OpMode {
+public class YooshGyro extends OpMode {
     // CONFIGURATION
 
     // Expansion Hub 1:
@@ -128,7 +128,7 @@ public class NewMan extends OpMode {
     @Override
     public void loop() {
         gyroLoop();
-        // measureDistance();
+        measureDistance();
         setManualMode();
         setDrivePower();
         selectPosition();
@@ -158,6 +158,16 @@ public class NewMan extends OpMode {
         rearLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rearRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         manArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -232,20 +242,13 @@ public class NewMan extends OpMode {
     private void resetArm() {
       if(gamepad1.right_stick_button) {
         if(!rightStickClick){
-          arcadeMode = !arcadeMode;
+          rightStickClick = true;
+          manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+          manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
       } else {
         rightStickClick = false;
       }
-      // if(gamepad1.right_stick_button) {
-      //   if(!rightStickClick){
-      //     rightStickClick = true;
-      //     manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-      //     manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-      //   }
-      // } else {
-      //   rightStickClick = false;
-      // }
     }
 
     private void manualMoveArm() {
@@ -320,7 +323,6 @@ public class NewMan extends OpMode {
         }
         manArm.setPower(0.3);
         manArm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        telemetry.addData("ArcadeMode:", arcadeMode);
 
         // moveClaw();
     }
@@ -331,11 +333,12 @@ public class NewMan extends OpMode {
 
     private void setDrivePower() {
         final double rotation = -Math.pow(gamepad1.right_stick_x, 3.0) * -0.5;
-        final double y = Math.pow(gamepad1.left_stick_y, 3.0) * -1;
-        final double x = -Math.pow(gamepad1.left_stick_x, 3.0) * -1;
+        final double y = Math.pow(gamepad1.left_stick_y, 3.0) * -0.5;
+        final double x = -Math.pow(gamepad1.left_stick_x, 3.0) * -0.5;
 
         final float currHeading = angles.firstAngle;
         final double direction = Math.atan2(x, y) + (arcadeMode ? currHeading : 0.0);
+        // final double direction = Math.atan2(x, y) + 90.0;
         final double speed = Math.min(1.0, Math.sqrt(x * x + y * y));
 
         final float brake = 1.0f;

@@ -19,9 +19,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import org.firstinspires.ftc.robotcore.external.State;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.teamcode.MecanumAutonomousAdvanced;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+
+import org.firstinspires.ftc.robotcore.external.android.AndroidGyroscope; 
+
 import com.qualcomm.robotcore.hardware.Servo;
 import java.text.DecimalFormat;
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -36,12 +42,16 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import android.app.Activity;
+import android.graphics.Color;
+import android.view.View;
 
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.Servo;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 
 /**
  * This file contains an example of an iterative (Non-Linear) "OpMode".
@@ -53,9 +63,9 @@ import com.qualcomm.robotcore.hardware.DistanceSensor;
  * Remove a @Disabled the on the next line or two (if present) to add this opmode to the Driver Station OpMode list,
  * or add a @Disabled annotation to prevent this OpMode from being added to the Driver Station
  */
-@TeleOp
+@Autonomous
 
-public class NewMan extends OpMode {
+public class RedPark extends OpMode {
     // CONFIGURATION
 
     // Expansion Hub 1:
@@ -76,10 +86,9 @@ public class NewMan extends OpMode {
 
     public DecimalFormat format = new DecimalFormat("##.00");
     private BNO055IMU imu;
-    private DcMotor frontLeft;
-    private DcMotor rearLeft;
-    private DcMotor frontRight;
-    private DcMotor rearRight;
+
+    private AndroidGyroscope Gyro; 
+
     private DcMotor manArm;
     private boolean rightBumperDown = false;
     private boolean leftBumperDown = false;
@@ -87,17 +96,21 @@ public class NewMan extends OpMode {
 
     private Servo elbow;
     private Servo hand;
+  
+    private Servo leftFound;
+    private Servo rightFound;
 
     private DistanceSensor frontDistance;
+    private ColorSensor frontColor;
+    private DistanceSensor frontRange;
+    private DistanceSensor rearDist;
+    private DistanceSensor leftDist;
+    private DistanceSensor rightDist;
 
     private String armState = "0block"; // <-- Using string comparators to better explain...
                                         // ...what is happening with the armState
-
     private String driveState = "step1";
-
-    public double leftStickY;
-    public double leftStickX;
-    public double rightStickX;
+    private String autoState = "slidePark";
 
     public Orientation angles;
     public Acceleration gravity;
@@ -106,35 +119,87 @@ public class NewMan extends OpMode {
     private boolean manualControl = false;
 
     private int gyroCalibratedCount = 0;
-    public double scalingFactor = 0.85;
     private float manualArmPower;
+
+    private MecanumAutonomousAdvanced mecanum;
+
+    private ElapsedTime time;
+
+        // hsvValues is an array that will hold the hue, saturation, and value information.
+    private float hsvValues[] = {0F, 0F, 0F};
+
+    private float values[] = hsvValues;
+
+        // sometimes it helps to multiply the raw RGB values with a scale factor
+        // to amplify/attentuate the measured values.
+    private double SCALE_FACTOR = 255;
+    private View relativeLayout;
+    private int relativeLayoutId;
+    private int currentPos; 
 
     @Override
     public void init() {
         armState = "0block";
         motorInit();
         gyroInit();
-        //gamepadInit();
+        //gamepadInit(); 
         sensorInit();
-        hand.setPosition(0.3);
+        // hand.setPosition(0.3);
+        time = new ElapsedTime();
+        time.reset();
+        
     }
 
     @Override
     public void init_loop() {
         gyroLoop();
-        // measureDistance();
     }
 
     @Override
     public void loop() {
+        telemetry.addData("loop time", time.milliseconds());
+        telemetry.addData("encoder", mecanum.getFrontRight());
+        telemetry.addData("rightdist", rightDist.getDistance(DistanceUnit.CM));
+        telemetry.addData("rearDist", rearDist.getDistance(DistanceUnit.CM)); 
+        telemetry.addData("autoState", autoState);
+        time.reset();
         gyroLoop();
-        // measureDistance();
-        setManualMode();
-        setDrivePower();
-        selectPosition();
-        moveArm();
-        dropBlock();
-        resetArm();
+        //setManualMode();
+        seeWorld();
+        driveLoop();
+        mecanum.go(); 
+        
+        // if(hsvValues[0] > 100){
+        //   mecanum.setSlide(0.0f);
+        //   mecanum.setFwd(0.0f);
+        // }
+        // else{
+        //   mecanum.setSlide(0.5f);
+        //   mecanum.setFwd(-0.09f);
+        // }
+        // mecanum.go();
+
+
+        // if(frontDistance.getDistance(DistanceUnit.CM) < 50){
+        // // mecanum.setSlide(0.0f);
+        //   mecanum.setFwd(0.0f);
+        // }
+        // else{
+        //   // mecanum.setSlide(0.5f);
+        //   mecanum.setFwd(-0.35f);
+        // }
+        // mecanum.go();
+        
+        // selectPosition();
+        // moveArm();
+        // dropBlock(); // servo comm,
+        // //resetArm();
+
+        // frontColor.RGBtoHSV((int))
+        // telemetry.addData("JoystickSlide", mecanum.joystick_side());
+        // telemetry.addData("JoystickRotate", mecanum.joystick_rotate());
+        // telemetry.addData("JoystickFwd", mecanum.joystick_fwd());
+
     }
 
     private void gamepadInit() {
@@ -142,26 +207,18 @@ public class NewMan extends OpMode {
     }
 
     private void motorInit() {
-        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-        rearLeft = hardwareMap.get(DcMotor.class, "rearLeft");
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        rearRight = hardwareMap.get(DcMotor.class, "rearRight");
+        mecanum = new MecanumAutonomousAdvanced();
+        mecanum.init(gamepad1, hardwareMap);
 
         manArm = hardwareMap.get(DcMotor.class, "manArm");
-
         hand = hardwareMap.get(Servo.class, "leHand");
 
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);
-        rearRight.setDirection(DcMotor.Direction.REVERSE);
-
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rearLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rearRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftFound = hardwareMap.get(Servo.class, "leftFound");
+        rightFound = hardwareMap.get(Servo.class, "rightFound");
 
         manArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // TODO IS THIS THE RIGHT MODE?! SEE RUN_TO_POSITION
 
         telemetry.addData("MOTORS", "Initialized");
     }
@@ -180,13 +237,27 @@ public class NewMan extends OpMode {
 
     private void sensorInit() {
         frontDistance = hardwareMap.get(DistanceSensor.class, "frontDistance");
+        frontColor = hardwareMap.get(ColorSensor.class, "frontDistance");
+        frontRange = hardwareMap.get(DistanceSensor.class, "frontDistyboi");
+        rearDist = hardwareMap.get(DistanceSensor.class, "rearDist");
+        leftDist = hardwareMap.get(DistanceSensor.class, "leftDist");
+        rightDist = hardwareMap.get(DistanceSensor.class, "rightDist");
+
+        // values is a reference to the hsvValues array.
+        float values[] = hsvValues;
+
+
+        // get a reference to the RelativeLayout so we can change the background
+        // color of the Robot Controller app to match the hue detected by the RGB sensor.
+        // relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
+        // relativeLayout = ((Activity) hardwareMap.appContext).findViewById(relativeLayoutId);
     }
 
     private void gyroLoop() {
         //telemetry.addData("IMU", imu.isGyroCalibrated() ? "Initialized" : "Initializing...");
         angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
         //telemetry.addData("ANGLE", angles);
-        //telemetry.addData("HEADING", angles.firstAngle);
+        telemetry.addData("HEADING", angles.firstAngle);
     }
 
     // It is possible for buttons to be read multiple times through a loop, triggering
@@ -210,7 +281,7 @@ public class NewMan extends OpMode {
       if(gamepad1.right_bumper) {
         if(!rightBumperDown){
           rightBumperDown = true;
-          manualControl = !manualControl;
+          manualControl = !manualControl; // TODO NO TOGGLES ALLOWED THIS IS HORRIBLE
         }
       }
       else {
@@ -269,6 +340,17 @@ public class NewMan extends OpMode {
         else if (gamepad1.b){
           armState = "3block";
         }
+        else if (gamepad1.dpad_up){
+          armState = "capstone";
+        }
+    }
+
+    private void seeWorld() {
+      Color.RGBToHSV(
+        (int) (frontColor.red() * SCALE_FACTOR),
+        (int) (frontColor.green() * SCALE_FACTOR),
+        (int) (frontColor.blue() * SCALE_FACTOR),
+        hsvValues);
     }
 
 
@@ -282,10 +364,11 @@ public class NewMan extends OpMode {
           return;          // <-- This will exit the function early so...
                            // ...the state machine doesn't control the arm
         }
+
         switch(armState){
           case "0block":
-          manArm.setTargetPosition(0);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+          manArm.setTargetPosition(20);
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
             hand.setPosition(1);
             if(hand.getPosition() == 1) {
               armState = "1block";
@@ -295,67 +378,105 @@ public class NewMan extends OpMode {
 
           case "1block":
           manArm.setTargetPosition(420);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
             hand.setPosition(1);
           }
-
           break;
 
           case "2block":
           manArm.setTargetPosition(600);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
             hand.setPosition(1);
           }
-
           break;
 
           case "3block":
           manArm.setTargetPosition(880);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
             hand.setPosition(1);
           }
-
           break;
 
+          case "capstone":
+          manArm.setTargetPosition(1140);
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
+            hand.setPosition(1);
+          }
+          break;
         }
-        manArm.setPower(0.3);
-        manArm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        telemetry.addData("ArcadeMode:", arcadeMode);
 
+          manArm.setPower(0.3);
+          manArm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+          telemetry.addData("ArcadeMode:", arcadeMode);
         // moveClaw();
     }
 
     private void moveClaw() {
-      hand.setPosition(0.3);
+      //hand.setPosition(0.3);
     }
 
-    private void setDrivePower() {
-        final double rotation = -Math.pow(gamepad1.right_stick_x, 3.0) * -0.5;
-        final double y = Math.pow(gamepad1.left_stick_y, 3.0) * -1;
-        final double x = -Math.pow(gamepad1.left_stick_x, 3.0) * -1;
+    private void driveLoop() {
+      
+        switch (autoState){
+            case "slidePark": 
+                if(rearDist.getDistance(DistanceUnit.CM) < 3){
+                    stayOnTarget(2, -2);
+                    hugWall(5, 2);
+                    // mecanum.setSlide(-0.8f);
+                    // mecanum.setFwd(-0.5f);
+                } 
+                else {
+                    autoState = "slideDatBitch"; 
+                    // stayOnTarget(2, -2);
+                    // hugWall(5, 2);
+                    // mecanum.setSlide(0.0f);
+                    // mecanum.setFwd(0.0f);
+                }
+            break; 
 
-        final float currHeading = angles.firstAngle;
-        final double direction = Math.atan2(x, y) + (arcadeMode ? currHeading : 0.0);
-        final double speed = Math.min(1.0, Math.sqrt(x * x + y * y));
+            case "slideDatBitch":
+                if(mecanum.getFrontRight() < 1400){
+                    stayOnTarget(2, -2);
+                    hugWall(5, 2);
+                    mecanum.setSlide(0.7f); 
+                }
+                else {
+                    // stayOnTarget(2, -2);
+                    // hugWall(85, 80); 
+                    mecanum.setSlide(0); 
+                    autoState = "driveForward";
+                }
+            break;
 
-        final float brake = 1.0f;
-
-        final double lf = (speed * Math.sin(direction + Math.PI / 4.0) + rotation) * brake * scalingFactor;
-        final double rf = (speed * Math.cos(direction + Math.PI / 4.0) - rotation) * brake * scalingFactor;
-        final double lr = (speed * Math.cos(direction + Math.PI / 4.0) + rotation) * brake * scalingFactor;
-        final double rr = (speed * Math.sin(direction + Math.PI / 4.0) - rotation) * brake * scalingFactor;
-
-        frontLeft.setPower(-lf);
-        frontRight.setPower(-rf);
-        rearLeft.setPower(lr);
-        rearRight.setPower(rr);
+            case "driveForward":
+                if(rearDist.getDistance(DistanceUnit.CM) < 62){
+                    stayOnTarget(2, -2);
+                    mecanum.setFwd(-0.5f);
+                }
+                else {
+                    mecanum.setFwd(0); 
+                }
+            break;
+        }  
     }
 
-    private void measureDistance() {
-        telemetry.addData("FL", frontLeft.getCurrentPosition());
-        telemetry.addData("BL", rearLeft.getCurrentPosition());
-        telemetry.addData("FR", frontRight.getCurrentPosition());
-        telemetry.addData("BR", rearRight.getCurrentPosition());
+    private void stayOnTarget(int topAngle, int bottomAngle) {
+        if(angles.firstAngle > topAngle){
+            mecanum.setRotate(0.25f);
+        } else if(angles.firstAngle < bottomAngle) {
+            mecanum.setRotate(-0.25f); 
+        } else if(topAngle > angles.firstAngle && angles.firstAngle > bottomAngle) {
+            mecanum.setRotate(0.0f); 
+        }
     }
 
+    private void hugWall(int topDistance, int bottomDistance) {
+        if(rearDist.getDistance(DistanceUnit.CM) > topDistance) {
+            mecanum.setFwd(0.4f);
+        } else if(rearDist.getDistance(DistanceUnit.CM) < bottomDistance) {
+            mecanum.setFwd(-0.4f); 
+        } else if(topDistance > rearDist.getDistance(DistanceUnit.CM) && rearDist.getDistance(DistanceUnit.CM) > bottomDistance) {
+            mecanum.setFwd(0.0f); 
+        }
+    }
 }

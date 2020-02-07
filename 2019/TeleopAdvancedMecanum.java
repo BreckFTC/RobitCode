@@ -25,6 +25,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.qualcomm.robotcore.hardware.Servo;
 import java.text.DecimalFormat;
 import com.qualcomm.hardware.bosch.BNO055IMU;
+
+import org.firstinspires.ftc.robotcore.external.android.AndroidGyroscope; 
+
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
@@ -36,12 +39,16 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import android.app.Activity;
+import android.graphics.Color;
+import android.view.View;
 
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.Servo;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 
 /**
  * This file contains an example of an iterative (Non-Linear) "OpMode".
@@ -55,7 +62,7 @@ import com.qualcomm.robotcore.hardware.DistanceSensor;
  */
 @TeleOp
 
-public class NewMan extends OpMode {
+public class TeleopAdvancedMecanum extends OpMode {
     // CONFIGURATION
 
     // Expansion Hub 1:
@@ -76,10 +83,7 @@ public class NewMan extends OpMode {
 
     public DecimalFormat format = new DecimalFormat("##.00");
     private BNO055IMU imu;
-    private DcMotor frontLeft;
-    private DcMotor rearLeft;
-    private DcMotor frontRight;
-    private DcMotor rearRight;
+
     private DcMotor manArm;
     private boolean rightBumperDown = false;
     private boolean leftBumperDown = false;
@@ -87,27 +91,44 @@ public class NewMan extends OpMode {
 
     private Servo elbow;
     private Servo hand;
+    
+    private Servo leftFound;
+    private Servo rightFound;
 
     private DistanceSensor frontDistance;
-
+    private ColorSensor frontColor;
+    private DistanceSensor frontRange;
+    private DistanceSensor rearDist;
+    private DistanceSensor leftDist;
+    private DistanceSensor rightDist;
     private String armState = "0block"; // <-- Using string comparators to better explain...
                                         // ...what is happening with the armState
-
     private String driveState = "step1";
-
-    public double leftStickY;
-    public double leftStickX;
-    public double rightStickX;
 
     public Orientation angles;
     public Acceleration gravity;
 
     private boolean arcadeMode = false;
     private boolean manualControl = false;
-
+    //remove? Is not used
     private int gyroCalibratedCount = 0;
-    public double scalingFactor = 0.85;
+    
     private float manualArmPower;
+
+    private MecanumDriveAdvanced mecanum;
+
+    private ElapsedTime time;
+
+        // hsvValues is an array that will hold the hue, saturation, and value information.
+    private float hsvValues[] = {0F, 0F, 0F};
+
+      private float values[] = hsvValues;
+
+        // sometimes it helps to multiply the raw RGB values with a scale factor
+        // to amplify/attentuate the measured values.
+    private double SCALE_FACTOR = 255;
+    private View relativeLayout;
+    private int relativeLayoutId;
 
     @Override
     public void init() {
@@ -116,25 +137,46 @@ public class NewMan extends OpMode {
         gyroInit();
         //gamepadInit();
         sensorInit();
-        hand.setPosition(0.3);
+        // hand.setPosition(0.3);
+        time = new ElapsedTime();
+        time.reset();
+        
     }
 
     @Override
     public void init_loop() {
         gyroLoop();
-        // measureDistance();
     }
 
     @Override
     public void loop() {
+        telemetry.addData("loop time", time.milliseconds());
+        // telemetry.addData("r/12886", frontDistance.getDistance(DistanceUnit.CM));
+        // telemetry.addData("LeftTrigger", gamepad1.left_trigger); 
+        // telemetry.addData("frontRange", frontRange.getDistance(DistanceUnit.CM));
+        
+        // telemetry.addData("rightDist", rightDist.getDistance(DistanceUnit.CM));
+        // telemetry.addData("leftDist", leftDist.getDistance(DistanceUnit.CM));
+        // telemetry.addData("rearDist", rearDist.getDistance(DistanceUnit.CM));
+        
+        time.reset();
         gyroLoop();
-        // measureDistance();
-        setManualMode();
-        setDrivePower();
+        //setManualMode();
+        mecanum.go();
+
+        foundGrab();
         selectPosition();
         moveArm();
-        dropBlock();
-        resetArm();
+        // seeWorld();
+        dropBlock(); // servo comm,
+        //resetArm();
+        
+
+        // frontColor.RGBtoHSV((int))
+        //telemetry.addData("JoystickSlide", mecanum.joystick_side());
+        telemetry.addData("JoystickRotate", mecanum.joystick_rotate());
+        //telemetry.addData("JoystickFwd", mecanum.joystick_fwd());
+
     }
 
     private void gamepadInit() {
@@ -142,28 +184,20 @@ public class NewMan extends OpMode {
     }
 
     private void motorInit() {
-        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-        rearLeft = hardwareMap.get(DcMotor.class, "rearLeft");
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        rearRight = hardwareMap.get(DcMotor.class, "rearRight");
+        mecanum = new MecanumDriveAdvanced();
+        mecanum.init(gamepad1, hardwareMap);
+        
+        leftFound = hardwareMap.get(Servo.class, "leftFound");
+        rightFound = hardwareMap.get(Servo.class, "rightFound");
 
         manArm = hardwareMap.get(DcMotor.class, "manArm");
-
         hand = hardwareMap.get(Servo.class, "leHand");
-
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);
-        rearRight.setDirection(DcMotor.Direction.REVERSE);
-
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rearLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rearRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         manArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // TODO IS THIS THE RIGHT MODE?! SEE RUN_TO_POSITION
 
-        telemetry.addData("MOTORS", "Initialized");
+        //telemetry.addData("MOTORS", "Initialized");
     }
 
     private void gyroInit() {
@@ -180,13 +214,28 @@ public class NewMan extends OpMode {
 
     private void sensorInit() {
         frontDistance = hardwareMap.get(DistanceSensor.class, "frontDistance");
+        frontColor = hardwareMap.get(ColorSensor.class, "frontDistance");
+        frontRange = hardwareMap.get(DistanceSensor.class, "frontDistyboi");
+        leftDist = hardwareMap.get(DistanceSensor.class, "leftDist");
+        rightDist = hardwareMap.get(DistanceSensor.class, "rightDist");
+        rearDist = hardwareMap.get(DistanceSensor.class, "rearDist");
+
+
+        // values is a reference to the hsvValues array.
+        float values[] = hsvValues;
+
+
+        // get a reference to the RelativeLayout so we can change the background
+        // color of the Robot Controller app to match the hue detected by the RGB sensor.
+        relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
+        relativeLayout = ((Activity) hardwareMap.appContext).findViewById(relativeLayoutId);
     }
 
-    private void gyroLoop() {
-        //telemetry.addData("IMU", imu.isGyroCalibrated() ? "Initialized" : "Initializing...");
+    private void gyroLoop() {   
+        telemetry.addData("IMU", imu.isGyroCalibrated() ? "Initialized" : "Initializing...");
         angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-        //telemetry.addData("ANGLE", angles);
-        //telemetry.addData("HEADING", angles.firstAngle);
+        telemetry.addData("ANGLE", angles);
+        telemetry.addData("HEADING", angles.firstAngle);
     }
 
     // It is possible for buttons to be read multiple times through a loop, triggering
@@ -210,7 +259,7 @@ public class NewMan extends OpMode {
       if(gamepad1.right_bumper) {
         if(!rightBumperDown){
           rightBumperDown = true;
-          manualControl = !manualControl;
+          manualControl = !manualControl; // TODO NO TOGGLES ALLOWED THIS IS HORRIBLE
         }
       }
       else {
@@ -269,6 +318,29 @@ public class NewMan extends OpMode {
         else if (gamepad1.b){
           armState = "3block";
         }
+        else if (gamepad1.dpad_up){
+          armState = "capstone";
+        }
+    }
+
+    private void seeWorld() {
+      Color.RGBToHSV(
+        (int) (frontColor.red() * SCALE_FACTOR),
+        (int) (frontColor.green() * SCALE_FACTOR),
+        (int) (frontColor.blue() * SCALE_FACTOR),
+        hsvValues);
+
+      telemetry.addData("Alpha", frontColor.alpha());
+       telemetry.addData("Red  ", frontColor.red());
+       telemetry.addData("Green", frontColor.green());
+       telemetry.addData("Blue ", frontColor.blue());
+      telemetry.addData("Hue", hsvValues[0]);
+
+      relativeLayout.post(new Runnable() {
+        public void run() {
+          relativeLayout.setBackgroundColor(Color.HSVToColor(0xff, hsvValues));
+        }
+      });
     }
 
 
@@ -285,7 +357,7 @@ public class NewMan extends OpMode {
         switch(armState){
           case "0block":
           manArm.setTargetPosition(0);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
             hand.setPosition(1);
             if(hand.getPosition() == 1) {
               armState = "1block";
@@ -295,33 +367,40 @@ public class NewMan extends OpMode {
 
           case "1block":
           manArm.setTargetPosition(420);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
             hand.setPosition(1);
           }
 
           break;
 
           case "2block":
-          manArm.setTargetPosition(600);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+          manArm.setTargetPosition(565);
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
             hand.setPosition(1);
           }
 
           break;
 
           case "3block":
-          manArm.setTargetPosition(880);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 4.0 && !leftBumperDown) {
+          manArm.setTargetPosition(775);
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
             hand.setPosition(1);
           }
 
           break;
 
-        }
-        manArm.setPower(0.3);
-        manArm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        telemetry.addData("ArcadeMode:", arcadeMode);
+          case "capstone":
+          manArm.setTargetPosition(1100);
+          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
+            hand.setPosition(1);
+          }
 
+          break;
+        }
+
+          manArm.setPower(0.3);
+          manArm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+          telemetry.addData("ArcadeMode:", arcadeMode);
         // moveClaw();
     }
 
@@ -329,33 +408,13 @@ public class NewMan extends OpMode {
       hand.setPosition(0.3);
     }
 
-    private void setDrivePower() {
-        final double rotation = -Math.pow(gamepad1.right_stick_x, 3.0) * -0.5;
-        final double y = Math.pow(gamepad1.left_stick_y, 3.0) * -1;
-        final double x = -Math.pow(gamepad1.left_stick_x, 3.0) * -1;
-
-        final float currHeading = angles.firstAngle;
-        final double direction = Math.atan2(x, y) + (arcadeMode ? currHeading : 0.0);
-        final double speed = Math.min(1.0, Math.sqrt(x * x + y * y));
-
-        final float brake = 1.0f;
-
-        final double lf = (speed * Math.sin(direction + Math.PI / 4.0) + rotation) * brake * scalingFactor;
-        final double rf = (speed * Math.cos(direction + Math.PI / 4.0) - rotation) * brake * scalingFactor;
-        final double lr = (speed * Math.cos(direction + Math.PI / 4.0) + rotation) * brake * scalingFactor;
-        final double rr = (speed * Math.sin(direction + Math.PI / 4.0) - rotation) * brake * scalingFactor;
-
-        frontLeft.setPower(-lf);
-        frontRight.setPower(-rf);
-        rearLeft.setPower(lr);
-        rearRight.setPower(rr);
+    private void foundGrab() {
+        if (gamepad1.dpad_left){
+          leftFound.setPosition(0.4);
+          rightFound.setPosition(0.5);
+        } else {
+          leftFound.setPosition(1);
+          rightFound.setPosition(0);
+        }
     }
-
-    private void measureDistance() {
-        telemetry.addData("FL", frontLeft.getCurrentPosition());
-        telemetry.addData("BL", rearLeft.getCurrentPosition());
-        telemetry.addData("FR", frontRight.getCurrentPosition());
-        telemetry.addData("BR", rearRight.getCurrentPosition());
-    }
-
 }
