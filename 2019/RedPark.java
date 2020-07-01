@@ -68,6 +68,9 @@ import com.qualcomm.robotcore.hardware.ColorSensor;
 public class RedPark extends OpMode {
     // CONFIGURATION
 
+    // Yoosh wuz here
+
+
     // Expansion Hub 1:
     // Motors:
     // Port 0: manArm
@@ -139,88 +142,49 @@ public class RedPark extends OpMode {
 
     @Override
     public void init() {
-        armState = "0block";
-        motorInit();
-        gyroInit();
-        //gamepadInit(); 
-        sensorInit();
-        // hand.setPosition(0.3);
-        time = new ElapsedTime();
-        time.reset();
+      armState = "0block";
+      motorInit();
+      gyroInit();
+      sensorInit();
+      time = new ElapsedTime();
+      time.reset();
         
     }
 
     @Override
     public void init_loop() {
-        gyroLoop();
+      gyroLoop();
     }
 
     @Override
     public void loop() {
-        telemetry.addData("loop time", time.milliseconds());
-        telemetry.addData("encoder", mecanum.getFrontRight());
-        telemetry.addData("rightdist", rightDist.getDistance(DistanceUnit.CM));
-        telemetry.addData("rearDist", rearDist.getDistance(DistanceUnit.CM)); 
-        telemetry.addData("autoState", autoState);
-        time.reset();
-        gyroLoop();
-        //setManualMode();
-        seeWorld();
-        driveLoop();
-        mecanum.go(); 
-        
-        // if(hsvValues[0] > 100){
-        //   mecanum.setSlide(0.0f);
-        //   mecanum.setFwd(0.0f);
-        // }
-        // else{
-        //   mecanum.setSlide(0.5f);
-        //   mecanum.setFwd(-0.09f);
-        // }
-        // mecanum.go();
-
-
-        // if(frontDistance.getDistance(DistanceUnit.CM) < 50){
-        // // mecanum.setSlide(0.0f);
-        //   mecanum.setFwd(0.0f);
-        // }
-        // else{
-        //   // mecanum.setSlide(0.5f);
-        //   mecanum.setFwd(-0.35f);
-        // }
-        // mecanum.go();
-        
-        // selectPosition();
-        // moveArm();
-        // dropBlock(); // servo comm,
-        // //resetArm();
-
-        // frontColor.RGBtoHSV((int))
-        // telemetry.addData("JoystickSlide", mecanum.joystick_side());
-        // telemetry.addData("JoystickRotate", mecanum.joystick_rotate());
-        // telemetry.addData("JoystickFwd", mecanum.joystick_fwd());
-
+      telemetry.addData("autoState", autoState);
+      time.reset();
+      gyroLoop();
+      seeWorld();
+      driveLoop();
+      mecanum.go(); 
     }
 
     private void gamepadInit() {
-        gamepad1.setJoystickDeadzone(0.2f);
+      gamepad1.setJoystickDeadzone(0.2f);
     }
 
     private void motorInit() {
-        mecanum = new MecanumAutonomousAdvanced();
-        mecanum.init(gamepad1, hardwareMap);
+      mecanum = new MecanumAutonomousAdvanced();
+      mecanum.init(gamepad1, hardwareMap);
 
-        manArm = hardwareMap.get(DcMotor.class, "manArm");
-        hand = hardwareMap.get(Servo.class, "leHand");
+      manArm = hardwareMap.get(DcMotor.class, "manArm");
+      hand = hardwareMap.get(Servo.class, "leHand");
 
-        leftFound = hardwareMap.get(Servo.class, "leftFound");
-        rightFound = hardwareMap.get(Servo.class, "rightFound");
+      leftFound = hardwareMap.get(Servo.class, "leftFound");
+      rightFound = hardwareMap.get(Servo.class, "rightFound");
 
-        manArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // TODO IS THIS THE RIGHT MODE?! SEE RUN_TO_POSITION
+      manArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+      manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+      manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // TODO IS THIS THE RIGHT MODE?! SEE RUN_TO_POSITION
 
-        telemetry.addData("MOTORS", "Initialized");
+      telemetry.addData("MOTORS", "Initialized");
     }
 
     private void gyroInit() {

@@ -132,110 +132,87 @@ public class TeleopAdvancedMecanum extends OpMode {
 
     @Override
     public void init() {
-        armState = "0block";
-        motorInit();
-        gyroInit();
-        //gamepadInit();
-        sensorInit();
-        // hand.setPosition(0.3);
-        time = new ElapsedTime();
-        time.reset();
-        
+      armState = "0block";
+      motorInit();
+      gyroInit();
+      sensorInit();
+      time = new ElapsedTime();
+      time.reset();
     }
 
     @Override
     public void init_loop() {
-        gyroLoop();
+      gyroLoop();
     }
 
     @Override
     public void loop() {
-        telemetry.addData("loop time", time.milliseconds());
-        // telemetry.addData("r/12886", frontDistance.getDistance(DistanceUnit.CM));
-        // telemetry.addData("LeftTrigger", gamepad1.left_trigger); 
-        // telemetry.addData("frontRange", frontRange.getDistance(DistanceUnit.CM));
-        
-        // telemetry.addData("rightDist", rightDist.getDistance(DistanceUnit.CM));
-        // telemetry.addData("leftDist", leftDist.getDistance(DistanceUnit.CM));
-        // telemetry.addData("rearDist", rearDist.getDistance(DistanceUnit.CM));
-        
-        time.reset();
-        gyroLoop();
-        //setManualMode();
-        mecanum.go();
+      telemetry.addData("loop time", time.milliseconds());        
+      time.reset();
+      gyroLoop();
+      mecanum.go();
 
-        foundGrab();
-        selectPosition();
-        moveArm();
-        // seeWorld();
-        dropBlock(); // servo comm,
-        //resetArm();
-        
-
-        // frontColor.RGBtoHSV((int))
-        //telemetry.addData("JoystickSlide", mecanum.joystick_side());
-        telemetry.addData("JoystickRotate", mecanum.joystick_rotate());
-        //telemetry.addData("JoystickFwd", mecanum.joystick_fwd());
-
+      foundGrab();
+      selectPosition();
+      moveArm();
+      dropBlock(); // servo comm,
     }
 
     private void gamepadInit() {
-        gamepad1.setJoystickDeadzone(0.2f);
+      gamepad1.setJoystickDeadzone(0.2f);
     }
 
     private void motorInit() {
-        mecanum = new MecanumDriveAdvanced();
-        mecanum.init(gamepad1, hardwareMap);
-        
-        leftFound = hardwareMap.get(Servo.class, "leftFound");
-        rightFound = hardwareMap.get(Servo.class, "rightFound");
+      mecanum = new MecanumDriveAdvanced();
+      mecanum.init(gamepad1, hardwareMap);
+      
+      leftFound = hardwareMap.get(Servo.class, "leftFound");
+      rightFound = hardwareMap.get(Servo.class, "rightFound");
 
-        manArm = hardwareMap.get(DcMotor.class, "manArm");
-        hand = hardwareMap.get(Servo.class, "leHand");
+      manArm = hardwareMap.get(DcMotor.class, "manArm");
+      hand = hardwareMap.get(Servo.class, "leHand");
 
-        manArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // TODO IS THIS THE RIGHT MODE?! SEE RUN_TO_POSITION
-
-        //telemetry.addData("MOTORS", "Initialized");
+      manArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+      manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+      manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // TODO IS THIS THE RIGHT MODE?! SEE RUN_TO_POSITION
     }
 
     private void gyroInit() {
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+      imu = hardwareMap.get(BNO055IMU.class, "imu");
+      BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
-        parameters.mode                = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled      = false;
+      parameters.mode                = BNO055IMU.SensorMode.IMU;
+      parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+      parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+      parameters.loggingEnabled      = false;
 
-        imu.initialize(parameters);
+      imu.initialize(parameters);
     }
 
     private void sensorInit() {
-        frontDistance = hardwareMap.get(DistanceSensor.class, "frontDistance");
-        frontColor = hardwareMap.get(ColorSensor.class, "frontDistance");
-        frontRange = hardwareMap.get(DistanceSensor.class, "frontDistyboi");
-        leftDist = hardwareMap.get(DistanceSensor.class, "leftDist");
-        rightDist = hardwareMap.get(DistanceSensor.class, "rightDist");
-        rearDist = hardwareMap.get(DistanceSensor.class, "rearDist");
+      frontDistance = hardwareMap.get(DistanceSensor.class, "frontDistance");
+      frontColor = hardwareMap.get(ColorSensor.class, "frontDistance");
+      frontRange = hardwareMap.get(DistanceSensor.class, "frontDistyboi");
+      leftDist = hardwareMap.get(DistanceSensor.class, "leftDist");
+      rightDist = hardwareMap.get(DistanceSensor.class, "rightDist");
+      rearDist = hardwareMap.get(DistanceSensor.class, "rearDist");
 
 
-        // values is a reference to the hsvValues array.
-        float values[] = hsvValues;
+      // values is a reference to the hsvValues array.
+      float values[] = hsvValues;
 
 
-        // get a reference to the RelativeLayout so we can change the background
-        // color of the Robot Controller app to match the hue detected by the RGB sensor.
-        relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
-        relativeLayout = ((Activity) hardwareMap.appContext).findViewById(relativeLayoutId);
+      // get a reference to the RelativeLayout so we can change the background
+      // color of the Robot Controller app to match the hue detected by the RGB sensor.
+      relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
+      relativeLayout = ((Activity) hardwareMap.appContext).findViewById(relativeLayoutId);
     }
 
     private void gyroLoop() {   
-        telemetry.addData("IMU", imu.isGyroCalibrated() ? "Initialized" : "Initializing...");
-        angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-        telemetry.addData("ANGLE", angles);
-        telemetry.addData("HEADING", angles.firstAngle);
+      telemetry.addData("IMU", imu.isGyroCalibrated() ? "Initialized" : "Initializing...");
+      angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+      telemetry.addData("ANGLE", angles);
+      telemetry.addData("HEADING", angles.firstAngle);
     }
 
     // It is possible for buttons to be read multiple times through a loop, triggering
@@ -286,122 +263,89 @@ public class TeleopAdvancedMecanum extends OpMode {
       } else {
         rightStickClick = false;
       }
-      // if(gamepad1.right_stick_button) {
-      //   if(!rightStickClick){
-      //     rightStickClick = true;
-      //     manArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-      //     manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-      //   }
-      // } else {
-      //   rightStickClick = false;
-      // }
     }
 
     private void manualMoveArm() {
-        manualArmPower = (gamepad1.left_trigger * -1) + (gamepad1.right_trigger);
-       // telemetry.addData("MANUAL POWER:", manualArmPower);
-        manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        manArm.setPower(manualArmPower);
+      manualArmPower = (gamepad1.left_trigger * -1) + (gamepad1.right_trigger);
+      manArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+      manArm.setPower(manualArmPower);
     }
 
     private void selectPosition() {
-       //telemetry.addData("ARM STATE:", armState);
-        if(gamepad1.a){
-          armState = "0block";
-        }
-        else if (gamepad1.x){
-          armState = "1block";
-        }
-        else if (gamepad1.y){
-          armState = "2block";
-        }
-        else if (gamepad1.b){
-          armState = "3block";
-        }
-        else if (gamepad1.dpad_up){
-          armState = "capstone";
-        }
+      if(gamepad1.a){
+        armState = "0block";
+      }
+      else if (gamepad1.x){
+        armState = "1block";
+      }
+      else if (gamepad1.y){
+        armState = "2block";
+      }
+      else if (gamepad1.b){
+        armState = "3block";
+      }
+      else if (gamepad1.dpad_up){
+        armState = "capstone";
+      }
     }
-
-    private void seeWorld() {
-      Color.RGBToHSV(
-        (int) (frontColor.red() * SCALE_FACTOR),
-        (int) (frontColor.green() * SCALE_FACTOR),
-        (int) (frontColor.blue() * SCALE_FACTOR),
-        hsvValues);
-
-      telemetry.addData("Alpha", frontColor.alpha());
-       telemetry.addData("Red  ", frontColor.red());
-       telemetry.addData("Green", frontColor.green());
-       telemetry.addData("Blue ", frontColor.blue());
-      telemetry.addData("Hue", hsvValues[0]);
-
-      relativeLayout.post(new Runnable() {
-        public void run() {
-          relativeLayout.setBackgroundColor(Color.HSVToColor(0xff, hsvValues));
-        }
-      });
-    }
-
 
     private void moveArm() {
-        //telemetry.addData("ManArm", manArm.getCurrentPosition());
-        if(manualControl){
-          manualMoveArm(); // <-- If manual control mode is active...
-                           // ...revert to trigger control.
-                           // RightTrigger = up
-                           // LeftTrigger = down
-          return;          // <-- This will exit the function early so...
-                           // ...the state machine doesn't control the arm
+      //telemetry.addData("ManArm", manArm.getCurrentPosition());
+      if(manualControl){
+        manualMoveArm(); // <-- If manual control mode is active...
+                          // ...revert to trigger control.
+                          // RightTrigger = up
+                          // LeftTrigger = down
+        return;          // <-- This will exit the function early so...
+                          // ...the state machine doesn't control the arm
+      }
+      switch(armState){
+        case "0block":
+        manArm.setTargetPosition(0);
+        if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
+          hand.setPosition(1);
+          if(hand.getPosition() == 1) {
+            armState = "1block";
+          }
         }
-        switch(armState){
-          case "0block":
-          manArm.setTargetPosition(0);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
-            hand.setPosition(1);
-            if(hand.getPosition() == 1) {
-              armState = "1block";
-            }
-          }
-          break;
+        break;
 
-          case "1block":
-          manArm.setTargetPosition(420);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
-            hand.setPosition(1);
-          }
-
-          break;
-
-          case "2block":
-          manArm.setTargetPosition(565);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
-            hand.setPosition(1);
-          }
-
-          break;
-
-          case "3block":
-          manArm.setTargetPosition(775);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
-            hand.setPosition(1);
-          }
-
-          break;
-
-          case "capstone":
-          manArm.setTargetPosition(1100);
-          if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
-            hand.setPosition(1);
-          }
-
-          break;
+        case "1block":
+        manArm.setTargetPosition(420);
+        if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
+          hand.setPosition(1);
         }
 
-          manArm.setPower(0.3);
-          manArm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-          telemetry.addData("ArcadeMode:", arcadeMode);
-        // moveClaw();
+        break;
+
+        case "2block":
+        manArm.setTargetPosition(565);
+        if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
+          hand.setPosition(1);
+        }
+
+        break;
+
+        case "3block":
+        manArm.setTargetPosition(775);
+        if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
+          hand.setPosition(1);
+        }
+
+        break;
+
+        case "capstone":
+        manArm.setTargetPosition(1100);
+        if(frontDistance.getDistance(DistanceUnit.CM) < 5.5 && !leftBumperDown) {
+          hand.setPosition(1);
+        }
+
+        break;
+      }
+
+      manArm.setPower(0.3);
+      manArm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+      telemetry.addData("ArcadeMode:", arcadeMode);
     }
 
     private void moveClaw() {
@@ -409,12 +353,12 @@ public class TeleopAdvancedMecanum extends OpMode {
     }
 
     private void foundGrab() {
-        if (gamepad1.dpad_left){
-          leftFound.setPosition(0.4);
-          rightFound.setPosition(0.5);
-        } else {
-          leftFound.setPosition(1);
-          rightFound.setPosition(0);
-        }
+      if (gamepad1.dpad_left){
+        leftFound.setPosition(0.4);
+        rightFound.setPosition(0.5);
+      } else {
+        leftFound.setPosition(1);
+        rightFound.setPosition(0);
+      }
     }
 }
